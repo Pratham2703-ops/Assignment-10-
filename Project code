@@ -1,1 +1,57 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import joblib
+import warnings
+import os
+import sys
+warnings.filterwarnings('ignore')
 
+# BULLETPROOF: Get the folder where this script is located
+# Works in terminal, IDE, Jupyter, Colab, and cloud deployments
+SCRIPT_PATH = os.path.abspath(sys.argv[0] if hasattr(sys, 'argv') and len(sys.argv) > 0 else __file__)
+SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
+if SCRIPT_DIR:
+    os.chdir(SCRIPT_DIR)
+
+print("Working directory:", os.getcwd())
+print("Loading dataset...")
+df = pd.read_csv('heart.csv')
+
+print("\nFirst 5 records:")
+print(df.head())
+
+print("\nNumerical Features:")
+print(df.select_dtypes(include=[np.number]).columns.tolist())
+
+print("\nTarget Variable:")
+print(df['target'].value_counts())
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+X = df.drop('target', axis=1)
+y = df['target']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+print(f"\nTrain: {X_train.shape} | Test: {X_test.shape}")
+
+scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)
+X_test_s = scaler.transform(X_test)
+
+print("\nTraining Random Forest...")
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_s, y_train)
+
+y_pred = model.predict(X_test_s)
+print(f"\nAccuracy: {accuracy_score(y_test, y_pred):.4f}")
+print(classification_report(y_test, y_pred))
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+joblib.dump(model, 'model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+print("\nSaved model.pkl and scaler.pkl")
